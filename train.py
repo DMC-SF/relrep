@@ -12,41 +12,31 @@ from pytorch_lightning.loggers import TensorBoardLogger
 import matplotlib.pyplot as plt
 import numpy as np
 from src.module import ConvAutoencoder
+from src.datamodules import MNISTDataModule
 
 ROOT_DIR = Path('.')
 DATA_DIR = ROOT_DIR / 'data'
 WEIGHTS_DIR = ROOT_DIR / 'weights'
 LOG_DIR = ROOT_DIR / 'logs'
 
-# Load and preprocess the MNIST dataset
-transform = transforms.Compose([transforms.ToTensor()])
 
-mnist_data = MNIST(root=DATA_DIR, train=True, download=True, transform=transform)
-train_dataset, val_dataset = random_split(mnist_data, [55000, 5000])
+def train():
+    batch_size = 128
+    num_epochs = 2
 
-# Hyperparameters
-batch_size = 128
-num_epochs = 2
+    mnist_dm = MNISTDataModule(data_dir=DATA_DIR, batch_size=batch_size)
+    model = ConvAutoencoder()
+    logger = TensorBoardLogger(save_dir=LOG_DIR)
 
-# Initialize the DataLoaders
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    trainer = pl.Trainer(
+        max_epochs=num_epochs, 
+        gpus=int(torch.cuda.is_available()),
+        
+    )
+    trainer.fit(model, mnist_dm)
 
-# Initialize the autoencoder
-model = ConvAutoencoder()
-
-logger = TensorBoardLogger(save_dir=LOG_DIR)
-
-# Train the autoencoder using a Trainer from PyTorch Lightning
-trainer = pl.Trainer(
-    max_epochs=num_epochs, 
-    gpus=int(torch.cuda.is_available()),
-    
-)
-trainer.fit(model, train_loader, val_loader)
-
-# Save the model weights
-torch.save(model.state_dict(), WEIGHTS_DIR / 'conv_autoencoder.pth')
+    # Save the model weights
+    torch.save(model.state_dict(), WEIGHTS_DIR / 'conv_autoencoder.pth')
 
 
 def plot_latent_space(model, val_dataset):
@@ -74,4 +64,3 @@ def plot_latent_space(model, val_dataset):
         plt.title('Latent Space of Validation Dataset')
         plt.show()
 
-plot_latent_space(model, val_dataset)
