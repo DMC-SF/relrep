@@ -6,6 +6,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def strip_and_load(model, weights_path):
+    """
+    Loads weights from weights_path into model. 
+    Strips the "net." prefix from the keys of the weights.
+    """
+    weights = torch.load(weights_path)
+    weights = {k.replace("net.", ""): v for k, v in weights.items()}
+    model.load_state_dict(weights,  strict=False)
+    return model
+
+
 def select_random_anchors(
     train_dataset: Dataset,
     n_anchors: int = 10,
