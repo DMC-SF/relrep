@@ -1,0 +1,23 @@
+_target_: models.module.MNISTModule
+
+num_anchor: 500
+batch_size: 1024
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: models.autoencoder.AutoEncoder
+  layer_size: 16
+  hidden_size: 500
+  use_relative_space: False

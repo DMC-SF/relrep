@@ -1,0 +1,8 @@
+# 25, 46
+
+enc_relative_space: True
+dec_relative_space: True
+use_relative_space: True
+enc_seed: 24
+dec_seed: 24
+tag: TrueTrue_24
