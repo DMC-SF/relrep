@@ -8,6 +8,9 @@ from transformers import AutoModel, AutoTokenizer
 
 # Load the Amazon Reviews dataset
 dataset = load_dataset("amazon_reviews_multi", "en")
+dataset = dataset.rename_column("stars", "labels")
+
+
 # Split the dataset into train and test sets
 train_data = dataset["train"]
 test_data = dataset["test"]
@@ -18,12 +21,12 @@ tokenizer = AutoTokenizer.from_pretrained("roberta-base")
 
 
 def tokenize_function(batch):
-    """Tokenize and add labels to the batch."""
-    batch["labels"] = batch["stars"] - 1
-    return tokenizer(batch["review_body"], padding=True, truncation=True)
+    """Tokenize."""
+    return tokenizer(batch["review_body"], padding=True, truncation=True, return_tensors="pt")
 
 
 tokenized_train_data = train_data.map(tokenize_function, batched=True)
+tokenized_train_data = tokenized_train_data.map(lambda batch: {"labels": batch["labels"] - 1})
 
 loader_columns = [
     "input_ids",
