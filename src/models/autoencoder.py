@@ -1,15 +1,17 @@
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils.utils import load_anchors
-
 
 class AutoEncoder(nn.Module):
 
-    def __init__(self, layer_size = 16, hidden_size=10, use_relative_space=False):
+    def __init__(self, anchors, layer_size = 16, use_relative_space=False, hidden_size=10):
         super().__init__()
+
+        self.use_relative_space = use_relative_space
+        device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+        self.anchors = anchors.to(device) # (N_ANC,1,28,28)
+        self.hidden_size = self.anchors.shape[0] if use_relative_space else hidden_size
 
         # encoder with pooling
         self.encoder = nn.Sequential(
@@ -32,10 +34,6 @@ class AutoEncoder(nn.Module):
             nn.ConvTranspose2d(layer_size, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Sigmoid(),
         )
-
-        self.use_relative_space = use_relative_space
-        device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-        self.anchors = load_anchors(data_dir="data", anchors_dir="anchors").to(device) # (N_ANC,1,28,28)
 
     def _relative_projection(self, x, anchors):
         # (B,N_ANC)@(N_ANC,N_ANC) -> (B,N_ANC)

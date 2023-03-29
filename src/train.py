@@ -6,6 +6,9 @@ import hydra
 import os
 import torch
 
+from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
+
 log = logging.getLogger(__name__)
 os.environ['HYDRA_FULL_ERROR'] = '1'
 

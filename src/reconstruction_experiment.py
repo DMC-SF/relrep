@@ -4,13 +4,13 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import MNIST
-from utils.utils import load_anchors, select_random_anchors, strip_and_load
+from utils.utils import load_anchors, strip_and_load
 from models.autoencoder import AutoEncoder
 import hydra
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
-N_ANCHORS = 500
+N_ANCHORS = 10
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="plot.yaml")
 def experiment(cfg):
@@ -47,14 +47,19 @@ def compare_models(
     """
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
-    model = AutoEncoder(hidden_size=N_ANCHORS, use_relative_space=use_relative_space).to(device)
+    anchors = load_anchors()
+    model = AutoEncoder(anchors=anchors, hidden_size=N_ANCHORS, use_relative_space=use_relative_space).to(device)
     model = strip_and_load(model, encoder_weights_path, decoder_weights_path)
 
-    val_dataset = MNIST("data", train=False, download=True, transform=transforms.ToTensor())
+    normalize = transforms.Normalize(mean=[0.1307], std=[0.3081])
+    val_dataset = MNIST(root='./data', train=False, download=True, transform=transforms.Compose([
+        transforms.ToTensor(),
+        normalize
+    ]))
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
 
     fig, axs = plt.subplots(2, n_images, figsize=(20, 4))
-    for i, (img, label) in enumerate(val_loader):
+    for i, (img, _) in enumerate(val_loader):
         if i == n_images:
             break
         img_hat = model(img.to(device)).cpu()

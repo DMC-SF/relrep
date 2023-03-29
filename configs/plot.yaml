@@ -3,6 +3,6 @@
 enc_relative_space: True
 dec_relative_space: True
 use_relative_space: True
-enc_seed: 24
+enc_seed: 42
 dec_seed: 24
-tag: TrueTrue_24
+tag: ${enc_relative_space}${dec_relative_space}_${enc_seed}_${dec_seed}

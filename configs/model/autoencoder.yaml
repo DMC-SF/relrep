@@ -1,7 +1,10 @@
 _target_: models.module.MNISTModule
 
-num_anchor: 500
+num_anchor: 10
 batch_size: 1024
+layer_size: 16
+hidden_size: 10
+use_relative_space: True
 
 optimizer:
   _target_: torch.optim.Adam
@@ -15,9 +18,3 @@ scheduler:
   mode: min
   factor: 0.1
   patience: 10
-
-net:
-  _target_: models.autoencoder.AutoEncoder
-  layer_size: 16
-  hidden_size: 500
-  use_relative_space: False
