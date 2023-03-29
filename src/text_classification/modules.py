@@ -18,11 +18,13 @@ class TextClassificationModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(ignore=["tokenizer", "encoder"])
         self.encoder = encoder
+        # Freeze the encoder
+        for param in self.encoder.parameters():
+            param.requires_grad = False
         self.decoder = nn.Linear(encoder.config.hidden_size, num_classes)
 
     def forward(self, inputs: Dict) -> torch.Tensor:
-        with torch.no_grad():
-            x = self.encoder(inputs["input_ids"], attention_mask=inputs["attention_mask"])
+        x = self.encoder(inputs["input_ids"], attention_mask=inputs["attention_mask"])
         x = self.decoder(x.pooler_output)
         return x
 
@@ -66,7 +68,7 @@ class AmazonReviewsDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.train_dataset, batch_size=self.batch_size, shuffle=True
+            self.train_dataset, batch_size=self.batch_size, shuffle=True, drop_last=True
         )
 
     def val_dataloader(self):
@@ -76,4 +78,8 @@ class AmazonReviewsDataModule(pl.LightningDataModule):
 
     def tokenize(self, batch):
         """Tokenize and add labels to the batch."""
-        return self.tokenizer(batch["review_body"], padding=True, truncation=True, return_tensors="pt")
+        return self.tokenizer(
+            batch["review_body"], 
+            padding="max_length", 
+            truncation=True,
+        )

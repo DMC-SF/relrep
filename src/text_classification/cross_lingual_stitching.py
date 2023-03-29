@@ -15,7 +15,7 @@ def train_encoder():
     datamodule = AmazonReviewsDataModule(
         model_name="roberta-base",
         language="en",
-        batch_size=128,
+        batch_size=64,
     )
 
     model = TextClassificationModule(
