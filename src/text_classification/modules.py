@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 import pytorch_lightning as pl
 import torch
@@ -20,21 +20,21 @@ class TextClassificationModule(pl.LightningModule):
         self.encoder = encoder
         self.decoder = nn.Linear(encoder.config.hidden_size, num_classes)
 
-    def forward(self, **inputs) -> torch.Tensor:
+    def forward(self, inputs: Dict) -> torch.Tensor:
         with torch.no_grad():
-            x = self.encoder(**inputs)
-        x = self.decoder(x.last_hidden_state[:, 0])
+            x = self.encoder(inputs["input_ids"], attention_mask=inputs["attention_mask"])
+        x = self.decoder(x.pooler_output)
         return x
 
     def training_step(self, batch, batch_idx):
-        y_hat = self(**batch)
-        loss = F.cross_entropy(y_hat, batch["stars"] - 1)
+        y_hat = self(batch)
+        loss = F.cross_entropy(y_hat, batch["labels"])
         self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        y_hat = self(**batch)
-        loss = F.cross_entropy(y_hat, batch["stars"] - 1)
+        y_hat = self(batch)
+        loss = F.cross_entropy(y_hat, batch["labels"])
         self.log("val/loss", loss)
         return loss
 
@@ -43,14 +43,12 @@ class TextClassificationModule(pl.LightningModule):
 
 
 class AmazonReviewsDataModule(pl.LightningDataModule):
-    loader_columns = [
-        "input_ids",
-        "token_type_ids",
-        "attention_mask",
-        "labels",
-    ]
+    loader_columns = {
+        'roberta-base': ["input_ids", "attention_mask", "labels",],
+        'bert-base': ["input_ids", "token_type_ids", "attention_mask", "labels",]
+    }
 
-    def __init__(self, model_name: str, language: str, batch_size: int = 128):
+    def __init__(self, model_name: str = "roberta-base", language: str = "en", batch_size: int = 128):
         super().__init__()
         self.model_name = model_name
         self.language = language
@@ -60,8 +58,10 @@ class AmazonReviewsDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         self.dataset = load_dataset("amazon_reviews_multi", self.language)
+        self.dataset = self.dataset.rename_column("stars", "labels")
         self.dataset = self.dataset.map(self.tokenize, batched=True)
-        self.dataset.set_format(type="torch", columns=self.loader_columns)
+        self.dataset = self.dataset.map(lambda batch: {"labels": batch["labels"] - 1})
+        self.dataset.set_format(type="torch", columns=self.loader_columns[self.model_name])
         self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["test"]
 
     def train_dataloader(self):
@@ -74,12 +74,6 @@ class AmazonReviewsDataModule(pl.LightningDataModule):
             self.val_dataset, batch_size=self.batch_size, shuffle=False
         )
 
-    def process_batch(self, batch):
+    def tokenize(self, batch):
         """Tokenize and add labels to the batch."""
-        batch["input_ids"] = self.tokenizer(
-            batch["review_body"],
-            padding=True,
-            truncation=True,
-        )["input_ids"]
-        batch["labals"] = batch["stars"].astype(torch.long) - 1
-        return batch
+        return self.tokenizer(batch["review_body"], padding=True, truncation=True, return_tensors="pt")

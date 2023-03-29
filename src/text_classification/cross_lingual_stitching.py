@@ -25,7 +25,8 @@ def train_encoder():
     )
 
     trainer = pl.Trainer(
-        accelerator="auto",
+        accelerator="gpu",
+        devices=[1],
         max_epochs=3,
         logger=False,
     )
