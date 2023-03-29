@@ -6,6 +6,7 @@ from datasets import load_dataset
 from torch import nn
 from torch.nn import functional as F
 from transformers import AutoModel, AutoTokenizer
+from torchmetrics.classification import MulticlassAccuracy
 
 
 class TextClassificationModule(pl.LightningModule):
@@ -21,22 +22,40 @@ class TextClassificationModule(pl.LightningModule):
         # Freeze the encoder
         for param in self.encoder.parameters():
             param.requires_grad = False
-        self.decoder = nn.Linear(encoder.config.hidden_size, num_classes)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(self.encoder.config.hidden_size, num_classes),
+            nn.LogSoftmax(dim=1)
+        )
+
+        self.train_acc = MulticlassAccuracy(num_classes=num_classes)
+        self.val_acc = MulticlassAccuracy(num_classes=num_classes)
 
     def forward(self, inputs: Dict) -> torch.Tensor:
         x = self.encoder(inputs["input_ids"], attention_mask=inputs["attention_mask"])
         x = self.decoder(x.pooler_output)
         return x
 
-    def training_step(self, batch, batch_idx):
+    def step(self, batch):
         y_hat = self(batch)
         loss = F.cross_entropy(y_hat, batch["labels"])
+        preds = torch.argmax(y_hat, dim=1)
+        return loss, preds, batch["labels"]
+
+    def on_train_start(self):
+        self.val_acc.reset()
+
+    def training_step(self, batch, batch_idx):
+        loss, preds, labels = self.step(batch)
+        self.train_acc(preds, labels)
+        self.log("train/acc", self.train_accuracy, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        y_hat = self(batch)
-        loss = F.cross_entropy(y_hat, batch["labels"])
+        loss, preds, labels = self.step(batch)
+        self.val_acc(preds, labels)
+        self.log("val/acc", self.val_accuracy, on_step=True, on_epoch=True, prog_bar=True)
         self.log("val/loss", loss)
         return loss
 
