@@ -9,17 +9,21 @@ class AutoEncoder(nn.Module):
         super().__init__()
 
         self.use_relative_space = use_relative_space
+
+        # Move anchors to device
         device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
         self.anchors = anchors.to(device) # (N_ANC,1,28,28)
+
+        # Set hidden size
         self.hidden_size = self.anchors.shape[0] if use_relative_space else hidden_size
 
-        # encoder with pooling
+        # encoder and decoder
         self.encoder = nn.Sequential(
             nn.Conv2d(1, layer_size, kernel_size=3, stride=2, padding=1),
-            nn.InstanceNorm2d(layer_size),
+            #nn.InstanceNorm2d(layer_size),
             nn.ReLU(),
             nn.Conv2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1),
-            nn.InstanceNorm2d(layer_size*2),
+            #nn.InstanceNorm2d(layer_size*2),
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(7 * 7 * layer_size*2, hidden_size),
@@ -36,20 +40,25 @@ class AutoEncoder(nn.Module):
         )
 
     def _relative_projection(self, x, anchors):
-        # (B,N_ANC)@(N_ANC,N_ANC) -> (B,N_ANC)
+        # Perform relative projection
         x = F.normalize(x, dim=1)
         anchors = F.normalize(anchors, dim=1)
         return torch.einsum("im,jm -> ij", x, anchors)
     
     def _new_encoded_anchors(self):
-        # with torch.no_grad():
-        out = self.encoder(self.anchors)
+        # no grad
+        with torch.no_grad():
+            # Compute new encoded anchors
+            out = self.encoder(self.anchors)
         return out
 
     def forward(self, x):
         encoded = self.encoder(x)
+
+        # Use relative space if specified
         if self.use_relative_space:
             new_anchors = self._new_encoded_anchors() # TODO: choose if we wanto the no_grad or not
             encoded = self._relative_projection(encoded, new_anchors) 
+    
         decoded = self.decoder(encoded)
         return decoded

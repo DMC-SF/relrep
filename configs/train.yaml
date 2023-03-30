@@ -11,7 +11,7 @@ seed: 1234
 logger:
   _target_: pytorch_lightning.loggers.wandb.WandbLogger
   save_dir: "logs"
-  offline: True
+  offline: False
   id: null # pass correct id to resume experiment!
   anonymous: null # enable anonymous logging
   project: "relative_space"

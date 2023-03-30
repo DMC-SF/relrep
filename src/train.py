@@ -12,6 +12,15 @@ import torchvision.transforms as transforms
 log = logging.getLogger(__name__)
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
+def save_model(model, seed, use_relative_space):
+    print("Saving weights...")
+    print("Encoder weights...")
+    save_path = f"weights/enc_seed={seed}_rs={use_relative_space}.pt"
+    torch.save(model.net.encoder.state_dict(), save_path)
+    print("Decoder weights...")
+    save_path = f"weights/dec_seed={seed}_rs={use_relative_space}.pt"
+    torch.save(model.net.decoder.state_dict(), save_path)
+
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
 def main(cfg):
@@ -28,15 +37,9 @@ def main(cfg):
     if not os.path.exists("weights"):
         os.makedirs("weights")
 
-    use_relative_space = cfg.model.net.use_relative_space
+    use_relative_space = cfg.model.use_relative_space
 
-    print("Saving weights...")
-    print("Encoder weights...")
-    save_path = f"weights/enc_seed={cfg.seed}_relative_space={use_relative_space}.pt"
-    torch.save(model.net.encoder.state_dict(), save_path)
-    print("Decoder weights...")
-    save_path = f"weights/dec_seed={cfg.seed}_relative_space={use_relative_space}.pt"
-    torch.save(model.net.decoder.state_dict(), save_path)
+    save_model(model, cfg.seed, use_relative_space)
 
 if __name__ == "__main__":
     main()

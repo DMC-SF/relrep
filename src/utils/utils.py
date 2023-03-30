@@ -51,7 +51,6 @@ def load_anchors():
     return a Tensor of dimension (n_anchors, 1, 28, 28)."""
     anchors = []
     for img in os.listdir("data/anchors"):
-        print(img)
         anchors.append(torch.load(f"data/anchors/{img}"))
     anchors = torch.stack(anchors)
     return anchors
@@ -80,51 +79,3 @@ def plot_latent_space(model, val_dataset):
         plt.ylabel('Dimension 2')
         plt.title('Latent Space of Validation Dataset')
         plt.show()
-
-# def select_random_anchors(
-#     train_dataset: Dataset,
-#     n_anchors: int = 10,
-#     data_dir: str = "data",
-#     anchors_dir: str = "anchors",
-# ):
-#     """Save n_anchors images from the train_dataset in the save_path folder.
-#     if n_anchors is lesser or equal to 10, we choose 10 img with different labels. Otherwise, we choose n_anchors random image.
-#     The images are saved as anchor_{i}.png where i is the index of the image in the training dataset.
-#     The images are saved with the transform=transforms.ToTensor()"""
-
-#     if not os.path.exists(f"{data_dir}/{anchors_dir}"):
-#         os.makedirs(f"{data_dir}/{anchors_dir}")
-
-#     if n_anchors <= 10:
-#         # select 10 images with different labels
-#         labels = []
-#         for i, (img, label) in enumerate(train_dataset):
-#             if label not in labels:
-#                 labels.append(label)
-#                 torchvision.utils.save_image(img, f"{data_dir}/{anchors_dir}/anchor_{i}.png")
-#             if len(labels) == n_anchors:
-#                 break
-#     else:
-#         # select n_anchors random images
-#         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-#         for i, (img, label) in enumerate(train_loader):
-#             if i == n_anchors:
-#                 break
-#             torchvision.utils.save_image(img, f"{data_dir}/{anchors_dir}/anchor_{i}.png")
-
-
-# def _load_anchors(data_dir: str = "data", anchors_dir: str = "anchors"):
-#     """Load all the anchors from the anchors_dir folder. return a Tensor of dimension (n_anchors, 1, 28, 28). 
-#     Apply the same transformations as the training dataset: transform=transforms.ToTensor().
-#     avoid: TypeError: pic should be PIL Image or ndarray. Got <class 'torch.Tensor'>"""
-#     anchors = []
-#     normalize = transforms.Normalize(mean=[0.1307], std=[0.3081])
-#     for img in os.listdir(f"{data_dir}/{anchors_dir}"):
-#         img = transforms.Compose([
-#                 transforms.ToTensor(),
-#                 transforms.Grayscale(),
-#                 normalize,
-#             ])(plt.imread(f"{data_dir}/{anchors_dir}/{img}"))
-#         anchors.append(img)
-#     anchors = torch.stack(anchors)
-#     return anchors
