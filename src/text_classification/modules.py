@@ -17,7 +17,8 @@ class TextClassificationModule(pl.LightningModule):
         learning_rate: float = 1e-3,
     ):
         super().__init__()
-        self.save_hyperparameters(ignore=["tokenizer", "encoder"])
+        self.save_hyperparameters(ignore=["encoder"])
+        
         self.encoder = encoder
         # Freeze the encoder
         for param in self.encoder.parameters():
@@ -48,20 +49,21 @@ class TextClassificationModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss, preds, labels = self.step(batch)
         self.train_acc(preds, labels)
-        self.log("train/acc", self.train_accuracy, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/acc", self.train_acc, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, preds, labels = self.step(batch)
         self.val_acc(preds, labels)
-        self.log("val/acc", self.val_accuracy, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("val/acc", self.val_acc, on_step=True, on_epoch=True, prog_bar=True)
         self.log("val/loss", loss)
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-
+        optimizer = torch.optim.Adam(self.decoder.parameters(), lr=self.hparams.learning_rate)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=2) 
+        return { "optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "val/loss" }
 
 class AmazonReviewsDataModule(pl.LightningDataModule):
     loader_columns = {
