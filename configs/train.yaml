@@ -4,7 +4,7 @@ defaults:
   - _self_
   - callbacks: default
   - trainer: gpu
-  - model: autoencoder
+  - model: variational
 
 seed: 1234
 
@@ -19,7 +19,7 @@ logger:
   prefix: "" # a string to put at the beginning of metric keys
   # entity: "" # set to name of your wandb team
   group: "image_reconstruction"
-  tags: ['28/03/23']
+  tags: ['31/03/23']
   notes: "testing"
   job_type: ""
 

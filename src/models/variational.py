@@ -1,101 +1,92 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F   
 
 
-class AutoEncoder(nn.Module):
+class VariationalAutoEncoder(nn.Module):
 
     def _relative_projection(self, x, anchors):
         # Perform relative projection
         x = F.normalize(x, dim=1)
         anchors = F.normalize(anchors, dim=1)
         return torch.einsum("im,jm -> ij", x, anchors)
-    
 
     def _new_encoded_anchors(self):
         # no grad
         with torch.no_grad():
             # Compute new encoded anchors
-            new_anchors = self.encoder(self.anchors)
-            # reparameterize
-            mean, logvar = torch.chunk(new_anchors, 2, dim=1)
-            new_anchors = self.reparameterize(mean, logvar)
+            mean, logvar = self.encode(self.anchors)
+            new_anchors = self._reparameterize(mean, logvar)
         return new_anchors
-
+    
     def _reparameterize(self, mean, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mean + eps * std
+        """Reparameterization trick."""
+        if self.training:
+            std = torch.exp(0.5*logvar)
+            eps = torch.randn_like(std)
+            return eps.mul(std).add_(mean)
+        else:
+            return mean
 
-    def __init__(self, anchors, layer_size = 16, use_relative_space=False, hidden_size=10):
-        super().__init__()
-
+    def __init__(self, anchors=None, layer_size = 32, use_relative_space=False, hidden_size=10):
+        super(VariationalAutoEncoder, self).__init__()
+        self.anchors = anchors
+        self.latent_dim = hidden_size
         self.use_relative_space = use_relative_space
-        self.eps = 1e-6
-        self.MAX_LOGSTD = 10
+        self.max_logvar = 5 # max log variance, to avoid numerical instability
 
-        # Move anchors to device
-        device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-        self.anchors = anchors.to(device) # (N_ANC,1,28,28)
+        if self.use_relative_space:
+            # move the anchors to the GPU
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.anchors = self.anchors.to(device)
 
-        # Set hidden size
-        self.hidden_size = self.anchors.shape[0] if use_relative_space else hidden_size
-
-        # encoder and decoder
         self.encoder = nn.Sequential(
             nn.Conv2d(1, layer_size, kernel_size=3, stride=2, padding=1),
-            #nn.InstanceNorm2d(layer_size),
             nn.ReLU(),
             nn.Conv2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1),
-            #nn.InstanceNorm2d(layer_size*2),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(7 * 7 * layer_size*2, 2*hidden_size),
+            nn.Linear(7 * 7 * layer_size*2, 2*self.latent_dim),
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(hidden_size, 7 * 7 * layer_size*2),
+            nn.Linear(self.latent_dim, 7 * 7 * layer_size),
             nn.ReLU(),
-            nn.Unflatten(1, (layer_size*2, 7, 7)),
+            nn.Unflatten(1, (layer_size, 7, 7)),
+            nn.ConvTranspose2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(),
             nn.ConvTranspose2d(layer_size*2, layer_size, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(),
-            nn.ConvTranspose2d(layer_size, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.Sigmoid(),
+            nn.ConvTranspose2d(layer_size, 1, kernel_size=3, stride=1, padding=1),
         )
 
-    def encode(self, data):
-        """
-        :param data: data
-        :return: mu, logvar
-        """
-        mu, logvar = self.encoder(data)
-        logvar = logvar.clamp(max=self.MAX_LOGSTD) # we need it to avoid inf loss
-        return mu, logvar
-    
-    def reparameterize(self, mu, logstd):
-        """
-        torch.randn_like(input) -> Returns a tensor with the same size as input that is filled 
-        with random numbers from a normal distribution with mean 0 and variance 1
-        :param mu: (Tensor) Mean of the latent Gaussian
-        :param logvar: (Tensor) Standard deviation of the latent Gaussian
-        :return: (Tensor)
-        """
-        if self.training:
-            return mu + torch.randn_like(logstd) * torch.exp(logstd)
-        else:
-            return mu
+    def encode(self, x):
+        """Encode a batch of images."""
+        mean, logvar = torch.chunk(self.encoder(x), 2, dim=1)
+        logvar = torch.clamp(logvar, min=-self.max_logvar, max=self.max_logvar)
+        return mean, logvar
+
+    def decode(self, z):
+        """Decode a batch of latent vectors."""
+        return torch.sigmoid(self.decoder(z))
 
     def forward(self, x):
-        encoded = self.encoder(x)
-
-        # Reparameterize
-        mean, logvar = torch.chunk(encoded, 2, dim=1)
-        z = self.reparameterize(mean, logvar)
-
-        # Use relative space if specified
+        mean, logvar = self.encode(x)
+        z = self._reparameterize(mean, logvar)
         if self.use_relative_space:
-            new_anchors = self._new_encoded_anchors() # TODO: choose if we wanto the no_grad or not
-            encoded = self._relative_projection(z, new_anchors) 
-    
-        decoded = self.decoder(z)
-        return decoded, mean, logvar
+            new_anchors = self._new_encoded_anchors()
+            z = self._relative_projection(z, new_anchors)
+        return self.decode(z), mean, logvar
+
+    def loss_function(self, recon_x, x, mean, logvar):
+        """Compute the loss function for the VAE."""
+        BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
+        KLD = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
+        return BCE + KLD
+
+
+
+
+
+
+

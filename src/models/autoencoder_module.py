@@ -98,4 +98,9 @@ class MNISTModule(LightningModule):
         return DataLoader(self.dataset, batch_size=self.hparams.batch_size, shuffle=True)
     
     def val_dataloader(self):
-        return DataLoader(self.dataset, batch_size=self.hparams.batch_size, shuffle=False)
+        normalize = transforms.Normalize(mean=[0.1307], std=[0.3081])
+        dataset = MNIST(root='./data', train=True, download=True, transform=transforms.Compose([
+            transforms.ToTensor(),
+            normalize
+        ]))
+        return DataLoader(dataset, batch_size=self.hparams.batch_size, shuffle=False)

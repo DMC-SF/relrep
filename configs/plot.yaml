@@ -1,8 +1,7 @@
-# 25, 46
-variational: False
-enc_relative_space: False
-dec_relative_space: False
-use_relative_space: False
-enc_seed: 24
-dec_seed: 42
-tag: ${enc_relative_space}${dec_relative_space}_${enc_seed}_${dec_seed}
+# recon_abs_rel
+num_anchor: 500
+seed_1: 24
+seed_2: 42
+variational: True
+relative_space: True
+tag: ${num_anchor}_${seed_1}_${seed_2}

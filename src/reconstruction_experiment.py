@@ -6,12 +6,10 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import MNIST
 from utils.utils import load_anchors, strip_and_load
 from models.autoencoder import AutoEncoder as AE
-from models.variational import AutoEncoder as VAE
+from models.variational import VariationalAutoEncoder as VAE
 import hydra
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-
-N_ANCHORS = 10
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="plot.yaml")
 def experiment(cfg):
@@ -33,6 +31,7 @@ def experiment(cfg):
         tag=cfg.tag,
         use_relative_space=cfg.use_relative_space,
         variational=cfg.variational,
+        num_anchor=cfg.num_anchor,
     )
 
 
@@ -42,6 +41,7 @@ def compare_models(
     tag: str,
     use_relative_space: bool = True,
     variational: bool = False,
+    num_anchor: int = 10,
     n_images: int = 10,
 ):
     """
@@ -52,9 +52,9 @@ def compare_models(
 
     anchors = load_anchors()
     if variational:
-        model = VAE(anchors=anchors, hidden_size=N_ANCHORS, use_relative_space=use_relative_space).to(device)
+        model = VAE(anchors=anchors, hidden_size=num_anchor, use_relative_space=use_relative_space).to(device)
     else:
-        model = AE(anchors=anchors, hidden_size=N_ANCHORS, use_relative_space=use_relative_space).to(device)
+        model = AE(anchors=anchors, hidden_size=num_anchor, use_relative_space=use_relative_space).to(device)
     model = strip_and_load(model, encoder_weights_path, decoder_weights_path)
 
     normalize = transforms.Normalize(mean=[0.1307], std=[0.3081])

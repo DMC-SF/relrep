@@ -4,6 +4,62 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 
+from models.autoencoder import AutoEncoder as AE
+from models.variational import VariationalAutoEncoder as VAE
+
+from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
+
+def compare_models(
+    encoder_weights_path: str, 
+    decoder_weights_path: str, 
+    tag: str,
+    use_relative_space: bool = True,
+    variational: bool = False,
+    num_anchor: int = 10,
+    n_images: int = 10,
+):
+    """
+    Compose an autoencoder model from two differently trained encoder and decoder and plot
+    original image vs reconstruction for n_images samples in the validation dataset.
+    """
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    anchors = load_anchors()
+    if variational:
+        model = VAE(anchors=anchors, hidden_size=num_anchor, use_relative_space=use_relative_space).to(device)
+    else:
+        model = AE(anchors=anchors, hidden_size=num_anchor, use_relative_space=use_relative_space).to(device)
+    model = strip_and_load(model, encoder_weights_path, decoder_weights_path)
+
+    normalize = transforms.Normalize(mean=[0.1307], std=[0.3081])
+    val_dataset = MNIST(root='./data', train=False, download=True, transform=transforms.Compose([
+        transforms.ToTensor(),
+        normalize
+    ]))
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
+
+    fig, axs = plt.subplots(2, n_images, figsize=(20, 4))
+    for i, (img, _) in enumerate(val_loader):
+        if i == n_images:
+            break
+        if variational:
+            img_hat = model(img.to(device))[0].cpu()
+        else:
+            img_hat = model(img.to(device)).cpu()
+        axs[0, i].imshow(img[0, 0], cmap="gray")
+        axs[1, i].imshow(img_hat[0, 0].detach(), cmap="gray")
+
+    # Save the plot
+    if not os.path.exists("images"):
+        os.makedirs("images")
+    if variational:
+        plt.savefig(f"images/var_rs={use_relative_space}_{tag}.png")
+    else:
+        plt.savefig(f"images/rs={use_relative_space}_{tag}.png")
+    
+    print(f'Images saved in \"images/rs={use_relative_space}_{tag}.png\"')
+
 def strip_and_load(model, weights_enc_path, weights_dec_path):
     """
     Loads weights from weights_path into model. 
@@ -39,8 +95,7 @@ def save_anchors(
                 break
     else:
         # select n_anchors random images
-        train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-        for i, (img, label) in enumerate(train_loader):
+        for i, (img, label) in enumerate(train_dataset):
             if i == n_anchors:
                 break
             torch.save(img, f"data/anchors/anchor_{i}.pt")
