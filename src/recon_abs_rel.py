@@ -23,6 +23,7 @@ def experiment(cfg):
 
     relative_space = cfg.relative_space
 
+    # plot the reconstruction of the end-to-end model
     compare_models(
         encoder_weights_path=f"weights/enc_seed={cfg.seed_1}_rs={relative_space}.pt",
         decoder_weights_path=f"weights/dec_seed={cfg.seed_1}_rs={relative_space}.pt",
@@ -32,6 +33,7 @@ def experiment(cfg):
         num_anchor=cfg.num_anchor,
     )
 
+    # plot the reconstruction of the stitched model
     compare_models(
         encoder_weights_path=f"weights/enc_seed={cfg.seed_1}_rs={relative_space}.pt",
         decoder_weights_path=f"weights/dec_seed={cfg.seed_2}_rs={relative_space}.pt",

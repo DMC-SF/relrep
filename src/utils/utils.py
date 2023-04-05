@@ -134,12 +134,3 @@ def plot_latent_space(model, val_dataset):
         plt.ylabel('Dimension 2')
         plt.title('Latent Space of Validation Dataset')
         plt.show()
-
-
-def plot_all_latent_spaces():
-    """
-    As in compare_models, but for a list of models.
-    The final image will be a grid in witch:
-    - the first row will be the original images
-    - in block as in compare models, there will be the reconstruction of 
-    """

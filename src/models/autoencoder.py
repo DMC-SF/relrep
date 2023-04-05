@@ -51,26 +51,6 @@ class AutoEncoder(nn.Module):
             nn.ConvTranspose2d(layer_size, 1, kernel_size=3, stride=1, padding=1),
         )
 
-
-        # self.encoder = nn.Sequential(
-        #     nn.Conv2d(1, layer_size, kernel_size=3, stride=2, padding=1),
-        #     nn.ReLU(),
-        #     nn.Conv2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1),
-        #     nn.ReLU(),
-        #     nn.Flatten(),
-        #     nn.Linear(7 * 7 * layer_size*2, hidden_size),
-        # )
-
-        # self.decoder = nn.Sequential(
-        #     nn.Linear(hidden_size, 7 * 7 * layer_size*2),
-        #     nn.ReLU(),
-        #     nn.Unflatten(1, (layer_size*2, 7, 7)),
-        #     nn.ConvTranspose2d(layer_size*2, layer_size, kernel_size=3, stride=2, padding=1, output_padding=1),
-        #     nn.ReLU(),
-        #     nn.ConvTranspose2d(layer_size, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
-        #     nn.Sigmoid(),
-        # )
-
     def forward(self, x):
         encoded = self.encoder(x)
 
