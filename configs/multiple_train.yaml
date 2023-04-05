@@ -6,9 +6,9 @@ metric:
   goal: minimize
 parameters:
   seed:
-    values: [24,42] # [42,46,63,72,93]
+    values: [12,21] # [42,46,63,72,93]
   model.use_relative_space:
-    values: [False]
+    values: [True, False]
 
 command:
   - ${env}

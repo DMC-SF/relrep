@@ -37,11 +37,11 @@ class AutoEncoder(nn.Module):
             nn.Conv2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(7 * 7 * layer_size*2, self.latent_dim),
+            nn.Linear(7 * 7 * layer_size*2, self.hidden_size),
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(self.latent_dim, 7 * 7 * layer_size),
+            nn.Linear(self.hidden_size, 7 * 7 * layer_size),
             nn.ReLU(),
             nn.Unflatten(1, (layer_size, 7, 7)),
             nn.ConvTranspose2d(layer_size, layer_size*2, kernel_size=3, stride=2, padding=1, output_padding=1),

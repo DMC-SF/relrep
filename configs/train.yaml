@@ -4,7 +4,7 @@ defaults:
   - _self_
   - callbacks: default
   - trainer: gpu
-  - model: variational
+  - model: autoencoder
 
 seed: 1234
 

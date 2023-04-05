@@ -4,6 +4,7 @@ outputs/
 wandb/
 weights/
 data/
+images/past
 
 
 # Byte-compiled / optimized / DLL files

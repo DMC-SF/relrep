@@ -26,7 +26,16 @@ def experiment(cfg):
     compare_models(
         encoder_weights_path=f"weights/enc_seed={cfg.seed_1}_rs={relative_space}.pt",
         decoder_weights_path=f"weights/dec_seed={cfg.seed_1}_rs={relative_space}.pt",
-        tag=cfg.tag,
+        tag=f'{cfg.num_anchor}_{cfg.seed_1}_{cfg.seed_1}',
+        use_relative_space=relative_space,
+        variational=cfg.variational,
+        num_anchor=cfg.num_anchor,
+    )
+
+    compare_models(
+        encoder_weights_path=f"weights/enc_seed={cfg.seed_1}_rs={relative_space}.pt",
+        decoder_weights_path=f"weights/dec_seed={cfg.seed_2}_rs={relative_space}.pt",
+        tag=f'{cfg.num_anchor}_{cfg.seed_1}_{cfg.seed_2}',
         use_relative_space=relative_space,
         variational=cfg.variational,
         num_anchor=cfg.num_anchor,
