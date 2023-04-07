@@ -1,0 +1,7 @@
+# recon_abs_rel
+num_anchor: 500
+seed_1: 12
+seed_2: 21
+variational: False
+relative_space: False
+tag: ${num_anchor}_${seed_1}_${seed_2}

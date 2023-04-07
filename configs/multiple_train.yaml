@@ -1,0 +1,17 @@
+program: src/train.py
+args_no_hyphens: True
+method: grid
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  seed:
+    values: [12,21] # [42,46,63,72,93]
+  model.use_relative_space:
+    values: [True, False]
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}
